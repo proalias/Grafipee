@@ -12,14 +12,14 @@ import processing.opengl.*;
 
 PImage bg;
 PImage texmap;
-
+PImage texPoint;
 int sDetail = 40;  // Sphere detail setting
 float rotationX = 0;
 float rotationY = 0;
 float velocityX = 0;
 float velocityY = 0;
 float globeRadius = 450;
-float pushBack = 0;
+float pushBack = 100;
 
 float[] cx, cz, sphereX, sphereY, sphereZ;
 float sinLUT[];
@@ -27,17 +27,73 @@ float cosLUT[];
 float SINCOS_PRECISION = 0.5;
 int SINCOS_LENGTH = int(360.0 / SINCOS_PRECISION);
 
-
+int pointW = 12;
+int pointH = 18;
+ArrayList points;
+  
 void setup() {
   size(1024, 768, OPENGL);
   smooth();
-  texmap = loadImage("world32k.jpg");    
+  texmap = loadImage("world32k.jpg");   
+  texPoint = loadImage("mapPoint.png");
+  points = new ArrayList();
+  points.add( new SurfacePoint(50,50,0, texPoint)); 
   initializeSphere(sDetail);
 }
 
 void draw() {
   background(0);
   renderGlobe();
+  drawPoints();
+  addPoint();
+}
+
+
+void drawPoints(){
+    pushMatrix();
+    translate(width/2.0, height/2.0, pushBack);
+ 
+  for (int i=points.size()-1;i>=0;i--){ 
+    pushMatrix();
+    rotateX( radians(-rotationX) );  
+    rotateY( radians(270 - rotationY) );
+    //rotateZ(0.58);
+  
+    
+    textureMode(NORMALIZED);
+
+    beginShape();
+    texture(texPoint);
+    SurfacePoint testPoint = (SurfacePoint) points.get(i);
+    pushMatrix();
+    //rotateX( radians(rotationX) );  
+    //rotateY( radians(270 + rotationY) );
+    vertex(testPoint.x-pointW, testPoint.y-pointH, testPoint.z,0,0);
+    vertex(testPoint.x+pointW, testPoint.y-pointH, testPoint.z,1,0);
+    vertex(testPoint.x+pointW, testPoint.y+pointH, testPoint.z,1,1);
+    vertex(testPoint.x-pointW, testPoint.y+pointH, testPoint.z,0,1);
+    endShape();
+    popMatrix();
+    popMatrix();
+  }
+  popMatrix();
+}
+
+void addPoint(){
+  
+  SurfacePoint newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(rotationX),radians(rotationY+90));
+  points.add( newPoint); 
+}
+
+//convert spherical coordinates into cartesian coordinates
+SurfacePoint getCoordinateOfPointByAngle(float radius, float inclination, float azimuth){
+   float pX, pY, pZ;
+   
+   pX = radius * sin (azimuth) * cos (inclination);
+   pY = radius * sin (azimuth) * sin (inclination);
+   pZ = radius * cos (azimuth);
+   
+   return new SurfacePoint(pX,pY,pZ,texPoint);
 }
 
 void renderGlobe() {
@@ -123,6 +179,7 @@ void texturedSphere(float r, PImage t)
   r = (r + 240 ) * 0.33;
   beginShape(TRIANGLE_STRIP);
   texture(t);
+  stroke(0);
   float iu=(float)(t.width-1)/(sDetail);
   float iv=(float)(t.height-1)/(sDetail);
   float u=0,v=iv;

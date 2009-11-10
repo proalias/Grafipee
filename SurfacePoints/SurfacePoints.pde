@@ -6,23 +6,39 @@
 **/
 import processing.opengl.*;
 
-ArrayList surfacePoints;
-float cullingDepth;
+ArrayList surfacePointsModel;
+ArrayList surfacePointsTransformed;
+
+float globeRadius = 300;
+float cullingDepth = globeRadius / 2;//the depth at which a point is completely obscured by the sphere.
+
+float rotationX = 0.0;
+float rotationY = 0.0;
 
 void setup(){
-  surfacePoints = new ArrayList();
+  //surfacePointsModel contains an array of points which are relative to a globe which has NO transformations applied.
+  //This is to prevent the data becoming slowly corrupted by rounding errors, and to allow a culling phase
+  size(300,300,OPENGL);
+  surfacePointsModel = new ArrayList();
+  surfacePointsTransformed = new ArrayList();
 }
 
 void draw(){
   int i;
-  for (i = surfacePoints.size(); i>=0; i--){
+  
+  for (i = surfacePointsModel.size(); i>=0; i--){
     //take the vertex from the original state and rotate it to the current position.
-    point rotatedPoint = new point(surfacePoints[i].x, surfacePoints[i].y, surfacePoints[i].z);
+    
+    //create a rotation matrix to transform the points from the original model to the current view
+    
+    
+    point rotatedPoint;
+    rotatedPoint = new point(surfacePoints[i].x, surfacePoints[i].y, surfacePoints[i].z);
     pushMatrix();
     rotateX( radians(globeRotX) );  
     rotateY( radians(globeRotY) );
     popMatrix();
-    
+    endShape();
     //If the point is behind the sphere, don't draw it.
     if (rotatedPoint.z > cullingDepth){
      continue;
@@ -47,5 +63,10 @@ void drawSurfacePoint(point v){
 *
 **/
 void addSurfacePoint(float xRot,float yRot){
+  float tX;
+  float tY;
+  float tZ;
+  
+  point
   
 }
