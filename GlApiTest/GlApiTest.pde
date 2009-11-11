@@ -26,32 +26,6 @@ void draw(){
   rotY += random(0.02);  
   
  
-  pushMatrix();
-  translate(500, 500, 0);
- 
-  for (int i=0;i<points.size();i++){ 
-    pushMatrix();
-    rotateX(rotX);
-    rotateY(rotY);
-    //rotateZ(0.58);
-  
-    
-    textureMode(NORMALIZED);
-    pushMatrix();
-    rotateX(-rotX);
-    rotateY(-rotY);
-    beginShape();
-    texture(a);
-    SurfacePoint testPoint = (SurfacePoint) points.get(i);
-    vertex(testPoint.x-pointW, testPoint.y-pointH, testPoint.z,0,0);
-    vertex(testPoint.x+pointW, testPoint.y-pointH, testPoint.z,1,0);
-    vertex(testPoint.x+pointW, testPoint.y+pointH, testPoint.z,1,1);
-    vertex(testPoint.x-pointW, testPoint.y+pointH, testPoint.z,0,1);
-    popMatrix();
-    endShape();
-    popMatrix();
-  }
-  popMatrix();
 
   SurfacePoint newPoint = getCoordinateOfPointByAngle(300,rotX, rotY);
   points.add( newPoint); 

@@ -19,7 +19,7 @@ float rotationY = 0;
 float velocityX = 0;
 float velocityY = 0;
 float globeRadius = 450;
-float pushBack = 100;
+float pushBack = 0;
 
 float[] cx, cz, sphereX, sphereY, sphereZ;
 float sinLUT[];
@@ -30,42 +30,34 @@ int SINCOS_LENGTH = int(360.0 / SINCOS_PRECISION);
 int pointW = 12;
 int pointH = 18;
 ArrayList points;
-  
+PFont font;
 void setup() {
   size(1024, 768, OPENGL);
   smooth();
   texmap = loadImage("world32k.jpg");   
   texPoint = loadImage("mapPoint.png");
   points = new ArrayList();
-  points.add( new SurfacePoint(50,50,0, texPoint)); 
+  points.add( new PVector(50,50,0)); 
   initializeSphere(sDetail);
+  font = loadFont("Verdana-48.vlw");
+  textFont(font);
 }
 
 void draw() {
   background(0);
   renderGlobe();
-  drawPoints();
+
   addPoint();
 }
 
 
 void drawPoints(){
-    pushMatrix();
-    translate(width/2.0, height/2.0, pushBack);
- 
   for (int i=points.size()-1;i>=0;i--){ 
-    pushMatrix();
-    rotateX( radians(-rotationX) );  
-    rotateY( radians(270 - rotationY) );
-    //rotateZ(0.58);
-  
-    
     textureMode(NORMALIZED);
 
     beginShape();
     texture(texPoint);
-    SurfacePoint testPoint = (SurfacePoint) points.get(i);
-    pushMatrix();
+    PVector testPoint = (PVector) points.get(i);
     //rotateX( radians(rotationX) );  
     //rotateY( radians(270 + rotationY) );
     vertex(testPoint.x-pointW, testPoint.y-pointH, testPoint.z,0,0);
@@ -73,27 +65,31 @@ void drawPoints(){
     vertex(testPoint.x+pointW, testPoint.y+pointH, testPoint.z,1,1);
     vertex(testPoint.x-pointW, testPoint.y+pointH, testPoint.z,0,1);
     endShape();
-    popMatrix();
-    popMatrix();
   }
-  popMatrix();
 }
 
 void addPoint(){
+  text(rotationX,10,50);
+  text(rotationY,10,100);
+  PVector newPoint = new PVector(0,0,0);
+  if (rotationY < 0 && rotationY > -180 || rotationY >180 && rotationY < 360){
+    newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(rotationX),radians(rotationY));
+  }else if (rotationY > 0 && rotationY < 180) || rotationY < -180 && rotationY > -360){
+    newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(-rotationX),radians(rotationY));
+  }
   
-  SurfacePoint newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(rotationX),radians(rotationY+90));
   points.add( newPoint); 
 }
 
 //convert spherical coordinates into cartesian coordinates
-SurfacePoint getCoordinateOfPointByAngle(float radius, float inclination, float azimuth){
+PVector getCoordinateOfPointByAngle(float radius, float inclination, float azimuth){
    float pX, pY, pZ;
    
    pX = radius * sin (azimuth) * cos (inclination);
    pY = radius * sin (azimuth) * sin (inclination);
    pZ = radius * cos (azimuth);
    
-   return new SurfacePoint(pX,pY,pZ,texPoint);
+   return new PVector(pX,pY,pZ);
 }
 
 void renderGlobe() {
@@ -108,21 +104,26 @@ void renderGlobe() {
   lights();    
   pushMatrix();
   rotateX( radians(-rotationX) );  
-  rotateY( radians(270 - rotationY) );
+  rotateY( radians(-rotationY) );
   fill(200);
   noStroke();
   textureMode(IMAGE);  
   texturedSphere(globeRadius, texmap);
+  drawPoints();
   popMatrix();  
   popMatrix();
   rotationX += velocityX;
   rotationY += velocityY;
+  
+  rotationX = rotationX % 360;
+  rotationY = rotationY % 360;
+  
   velocityX *= 0.95;
   velocityY *= 0.95;
   
   // Implements mouse control (interaction will be inverse when sphere is  upside down)
   if(mousePressed){
-    velocityX += (mouseY-pmouseY) * 0.01;
+    velocityX -= (mouseY-pmouseY) * 0.01;
     velocityY -= (mouseX-pmouseX) * 0.01;
   }
 }
