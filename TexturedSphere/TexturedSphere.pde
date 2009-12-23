@@ -9,6 +9,7 @@
  */ 
 
 import processing.opengl.*;
+import toxi.geom.*;
 
 PImage bg;
 PImage texmap;
@@ -31,6 +32,9 @@ int pointW = 12;
 int pointH = 18;
 ArrayList points;
 PFont font;
+
+ArcBall arcBall;
+
 void setup() {
   size(1024, 768, OPENGL);
   smooth();
@@ -41,13 +45,58 @@ void setup() {
   initializeSphere(sDetail);
   font = loadFont("Verdana-48.vlw");
   textFont(font);
+  arcBall = new ArcBall(width / 2.0f, height / 2.0f, globeRadius);
+
+ // camera(0.0, 0.0, 1120.0, 0.0, 0.0, 0.0, 
+   //    0.0, 1.0, 0.0);
+
 }
 
 void draw() {
   background(0);
+  
+  translate(500.0f, 500.0f, 0.0f);  // positioning...
+  arcBall.run();
   renderGlobe();
+  //drawPoints();
+  
+  PMatrix p = new PMatrix3D();
+  float[] a = arcBall.q_drag.getValue();
+  
 
-  addPoint();
+  text(a[0],-510,-450);
+  text(a[1],-510,-400);
+  text(a[2],-510,-350);
+  text(a[3],-510,-300);
+  
+  rotate(-a[0],a[1],a[2],a[3]);
+  p.invert();
+  //p.translate(-500,-500,0);
+  //PVector newPoint = new PVector(arcBall.v_drag.x * -250,arcBall.v_drag.y*-250,arcBall.v_drag.z*250);
+  
+  PVector newPoint = new PVector(arcBall.q_now.x * -550,arcBall.q_now.y*-550,arcBall.q_now.z*-550);
+
+
+  //p.mult(newPoint,newPoint);
+  
+  points.add( newPoint); 
+  
+  
+  //addPoint();
+}
+
+//draw a circle around each axis to determine whether the problem is related to
+void drawGimbals(){
+  
+}
+void mousePressed()
+{
+  arcBall.mousePressed();
+}
+
+void mouseDragged()
+{
+  arcBall.mouseDragged();
 }
 
 
@@ -69,12 +118,10 @@ void drawPoints(){
 }
 
 void addPoint(){
-  text(rotationX,10,50);
-  text(rotationY,10,100);
   PVector newPoint = new PVector(0,0,0);
   if (rotationY < 0 && rotationY > -180 || rotationY >180 && rotationY < 360){
     newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(rotationX),radians(rotationY));
-  }else if (rotationY > 0 && rotationY < 180) || rotationY < -180 && rotationY > -360){
+  }else if (rotationY > 0 && rotationY < 180 || rotationY < -180 && rotationY > -360){
     newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(-rotationX),radians(rotationY));
   }
   
@@ -93,8 +140,51 @@ PVector getCoordinateOfPointByAngle(float radius, float inclination, float azimu
 }
 
 void renderGlobe() {
+  /*
+  //PVector cameraPos = getCoordinateOfPointByAngle(1000,rotationX,rotationY);
+  Vec3D rotVect = new Vec3D(rotationX,rotationY,0);
+
+  Vec3D X_AXIS = new Vec3D(1,0,0);
+  Vec3D Y_AXIS = new Vec3D(0,1,0);
+  Vec3D Z_AXIS = new Vec3D(0,0,1);
+  
+  Vec3D xrot = Z_AXIS.copy();
+  xrot.rotateX(rotationX);
+  Vec3D yrot = X_AXIS.copy();
+  yrot.rotateY(rotationY);
+  
+  print(yrot);
+  
+  Vec3D zrot = X_AXIS.copy();
+  zrot.rotateZ(0);
+  
+  Quaternion xrotQuat = new Quaternion( 1,  0, 0, 0 );  
+  xrotQuat.set( xrot.dot( Z_AXIS ), xrot.cross( Z_AXIS) );  
+     
+  Quaternion yrotQuat = new Quaternion( 1,  0, 0, 0  );  
+  yrotQuat.set( yrot.dot( X_AXIS ), yrot.cross( X_AXIS ) );  
+     
+  Quaternion zrotQuat = new Quaternion( 1,  0, 0, 0  );  
+  zrotQuat.set( zrot.dot( X_AXIS ), zrot.cross( X_AXIS) );  
+  
+  Quaternion rotQuat = xrotQuat.multiply( yrotQuat ).multiply( zrotQuat );  
+  //m       = rotQuat.getMatrix();  
+
+  
+  //Quaternion camQuaternion = Quaternion.createFromEuler(0,rotationX,rotationY);
+  //camQuaternion.scale(10000);
+
+  Matrix4x4 rotMatrix = rotQuat.toMatrix4x4();
+  
+  Vec3D newCamPos = new Vec3D(0,0,1000);
+  
+  rotMatrix.applyTo(newCamPos);
+  */
+  //print("X:"+rotQuat.x+",Y:"+rotQuat.y+",Z:"+rotQuat.z+"\r\f");
+  //camera(newCamPos.x,newCamPos.y,newCamPos.z,0,0,0,0,1,0);
+
   pushMatrix();
-  translate(width/2.0, height/2.0, pushBack);
+  //translate(width/2.0, height/2.0, pushBack);
   pushMatrix();
   noFill();
   stroke(255,200);
@@ -103,11 +193,13 @@ void renderGlobe() {
   popMatrix();
   lights();    
   pushMatrix();
-  rotateX( radians(-rotationX) );  
-  rotateY( radians(-rotationY) );
+  //rotateX( radians(-rotationX) );  
+  //rotateY( radians(-rotationY) );
   fill(200);
   noStroke();
   textureMode(IMAGE);  
+
+  
   texturedSphere(globeRadius, texmap);
   drawPoints();
   popMatrix();  
@@ -115,16 +207,16 @@ void renderGlobe() {
   rotationX += velocityX;
   rotationY += velocityY;
   
-  rotationX = rotationX % 360;
-  rotationY = rotationY % 360;
-  
+  print("rotationX="+rotationX);
+  print("rotationY="+rotationY);  
   velocityX *= 0.95;
   velocityY *= 0.95;
   
   // Implements mouse control (interaction will be inverse when sphere is  upside down)
   if(mousePressed){
-    velocityX -= (mouseY-pmouseY) * 0.01;
-    velocityY -= (mouseX-pmouseX) * 0.01;
+
+   // velocityX -= (mouseY-pmouseY) * 0.01;
+   // velocityY -= (mouseX-pmouseX) * 0.01;
   }
 }
 
@@ -180,7 +272,7 @@ void texturedSphere(float r, PImage t)
   r = (r + 240 ) * 0.33;
   beginShape(TRIANGLE_STRIP);
   texture(t);
-  stroke(0);
+  //stroke(0);
   float iu=(float)(t.width-1)/(sDetail);
   float iv=(float)(t.height-1)/(sDetail);
   float u=0,v=iv;
