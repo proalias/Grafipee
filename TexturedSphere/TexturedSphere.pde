@@ -47,15 +47,15 @@ void setup() {
   textFont(font);
   arcBall = new ArcBall(width / 2.0f, height / 2.0f, globeRadius);
 
- // camera(0.0, 0.0, 1120.0, 0.0, 0.0, 0.0, 
-   //    0.0, 1.0, 0.0);
+  camera(0.0, 0.0, 1120.0, 0.0, 0.0, 0.0, 
+       0.0, 1.0, 0.0);
 
 }
 
 void draw() {
   background(0);
   
-  translate(500.0f, 500.0f, 0.0f);  // positioning...
+  //translate(00.0f, 500.0f, 0.0f);  // positioning...
   arcBall.run();
   renderGlobe();
   //drawPoints();
@@ -69,14 +69,29 @@ void draw() {
   text(a[2],-510,-350);
   text(a[3],-510,-300);
   
-  rotate(-a[0],a[1],a[2],a[3]);
+  rotate(a[0],a[1],a[2],a[3]);
   p.invert();
   //p.translate(-500,-500,0);
   //PVector newPoint = new PVector(arcBall.v_drag.x * -250,arcBall.v_drag.y*-250,arcBall.v_drag.z*250);
+  Quat quat = arcBall.q_now;
   
-  PVector newPoint = new PVector(arcBall.q_now.x * -550,arcBall.q_now.y*-550,arcBall.q_now.z*-550);
+  
+  
+ // PVector newPoint = new PVector(quat[1] * -250,quat[2] *-250,quat[3] *-250);
 
 
+  Vec3D npVect = new Vec3D(0,0,250);
+  
+  Quaternion qRot = new Quaternion(quat.w,quat.x,quat.y,quat.z);
+  Matrix4x4 pointRot = qRot.toMatrix4x4();
+  Vec3D newRot = pointRot.applyTo(npVect);
+  
+  print(pointRot);
+  
+  PVector newPoint = new PVector();
+  newPoint.x = newRot.x;
+  newPoint.y = newRot.y;
+  newPoint.z = newRot.z;
   //p.mult(newPoint,newPoint);
   
   points.add( newPoint); 
@@ -207,8 +222,8 @@ void renderGlobe() {
   rotationX += velocityX;
   rotationY += velocityY;
   
-  print("rotationX="+rotationX);
-  print("rotationY="+rotationY);  
+  //print("rotationX="+rotationX);
+  //print("rotationY="+rotationY);  
   velocityX *= 0.95;
   velocityY *= 0.95;
   
