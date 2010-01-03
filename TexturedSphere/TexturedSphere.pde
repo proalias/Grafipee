@@ -29,10 +29,11 @@ float cosLUT[];
 float SINCOS_PRECISION = 0.5;
 int SINCOS_LENGTH = int(360.0 / SINCOS_PRECISION);
 
-int pointW = 120;
-int pointH = 180;
+int pointW = 60;
+int pointH = 90;
 ArrayList points;
 PFont font;
+float cameraZ = 5000;
 
 ArcBall arcBall;
 
@@ -40,11 +41,7 @@ void setup() {
   size(1024, 768, OPENGL);
   smooth();
   
-  GL gl = ((PGraphicsOpenGL)g).gl; 
-
-  
-
-
+  GL gl = ((PGraphicsOpenGL)g).gl; //reference to the JOGL renderer in case we need access to anything low level 
   
   texmap = loadImage("world32k.jpg");   
   texPoint = loadImage("mapPoint.png");
@@ -55,7 +52,7 @@ void setup() {
   textFont(font);
   arcBall = new ArcBall(width / 2.0f, height / 2.0f, globeRadius);
 
-  camera(0.0, 0.0, 5120.0, 0.0, 0.0, 0.0, 
+  camera(0.0, 0.0, cameraZ, 0.0, 0.0, 0.0, 
        0.0, 1.0, 0.0);
 
 }
@@ -64,10 +61,21 @@ void draw() {
   background(0);
   
   //translate(00.0f, 500.0f, 0.0f);  // positioning...
+  pushMatrix();
   arcBall.run();
-  renderGlobe();
-  //drawPoints();
-    
+  //renderGlobe();
+  
+  lights();    
+  fill(200);
+  noStroke();
+  textureMode(IMAGE);  
+
+  
+  texturedSphere(globeRadius, texmap);
+ 
+  
+  PMatrix worldMatrix = getMatrix().get();
+  popMatrix();
   Quat quat = arcBall.q_now;
   
   
@@ -81,14 +89,11 @@ void draw() {
   Matrix4x4 pointRot = qRot.toMatrix4x4();
   Vec3D newRot = pointRot.applyTo(npVect);
   
-  print(pointRot);
-  
- //p.mult(newPoint,newPoint);
   
   points.add( newRot); 
   
-  drawPoints(pointRot);
-  //addPoint();
+  drawPoints(pointRot,worldMatrix);
+  
 }
 
 
@@ -103,129 +108,58 @@ void mouseDragged()
 }
 
 
-void drawPoints(Matrix4x4 rotMatrix){
+void drawPoints(Matrix4x4 rotMatrix, PMatrix worldMatrix){
   
   Vec3D p0,p1,p2,p3;
     
+    /*
+    //create the points that describe the corners of the billboard (same for each point)
     p0 = rotMatrix.applyTo(new Vec3D(-pointW, -pointH, 0));
     p1 = rotMatrix.applyTo(new Vec3D(+pointW, -pointH, 0));
     p2 = rotMatrix.applyTo(new Vec3D(+pointW, +pointH, 0));
     p3 = rotMatrix.applyTo(new Vec3D(-pointW, +pointH, 0));
+    */
+   //create the points that describe the corners of the billboard (same for each point)
+    p0 = new Vec3D(-pointW, -pointH, 0);
+    p1 = new Vec3D(+pointW, -pointH, 0);
+    p2 = new Vec3D(+pointW, +pointH, 0);
+    p3 = new Vec3D(-pointW, +pointH, 0);
     
-  //zsort the points here
-  
-   HashSet h = new HashSet(points);
-   points.clear();
-   points.addAll(h);
+   
+   //remove duplicate points (this may not be necessary in future revisions)
+ 
+  HashSet h = new HashSet(points);
+  points.clear();
+  points.addAll(h);
 
+  ArrayList newPoints = new ArrayList();
   
-  Collections.sort(points, new ZSortComparator());
+  for (int i=0;i<points.size()-1;i++){
+     PVector p = new PVector();
+     Vec3D sourceA= (Vec3D) points.get(i);
+     PVector sourceB = new PVector(sourceA.x,sourceA.y,sourceA.z);
   
+     worldMatrix.mult( sourceB, p);
+     p.z = p.z + cameraZ;//undo camera transform
+     newPoints.add(p);
+  }
   
-  for (int i=points.size()-1;i>=0;i--){ 
+  Collections.sort(newPoints, new ZSortComparator());
+  
+  for (int i=0; i<points.size()-1;i++){ 
     textureMode(NORMALIZED);
 
     beginShape();
     texture(texPoint);
-    Vec3D testPoint = (Vec3D) points.get(i);
-    //rotateX( radians(rotationX) );  
-    //rotateY( radians(270 + rotationY) );
-    //print (testPoint);
+    PVector testPoint = (PVector) newPoints.get(i);
     
-    
-    /*
-    vertex(testPoint.x-pointW, testPoint.y-pointH, testPoint.z,0,0);
-    vertex(testPoint.x+pointW, testPoint.y-pointH, testPoint.z,1,0);
-    vertex(testPoint.x+pointW, testPoint.y+pointH, testPoint.z,1,1);
-    vertex(testPoint.x-pointW, testPoint.y+pointH, testPoint.z,0,1);
-    */
     vertex(testPoint.x + p0.x,testPoint.y + p0.y,testPoint.z + p0.z,0,0);
     vertex(testPoint.x + p1.x,testPoint.y + p1.y,testPoint.z + p1.z,1,0);
     vertex(testPoint.x + p2.x,testPoint.y + p2.y,testPoint.z + p2.z,1,1);
     vertex(testPoint.x + p3.x,testPoint.y + p3.y,testPoint.z + p3.z,0,1);
     
-    
     endShape();
   }
-}
-
-
-//convert spherical coordinates into cartesian coordinates
-PVector getCoordinateOfPointByAngle(float radius, float inclination, float azimuth){
-   float pX, pY, pZ;
-   
-   pX = radius * sin (azimuth) * cos (inclination);
-   pY = radius * sin (azimuth) * sin (inclination);
-   pZ = radius * cos (azimuth);
-   
-   return new PVector(pX,pY,pZ);
-}
-
-void renderGlobe() {
-  
-  //PVector cameraPos = getCoordinateOfPointByAngle(1000,rotationX,rotationY);
-  Vec3D rotVect = new Vec3D(rotationX,rotationY,0);
-
-  Vec3D X_AXIS = new Vec3D(1,0,0);
-  Vec3D Y_AXIS = new Vec3D(0,1,0);
-  Vec3D Z_AXIS = new Vec3D(0,0,1);
-  
-  Vec3D xrot = Z_AXIS.copy();
-  xrot.rotateX(rotationX);
-  Vec3D yrot = X_AXIS.copy();
-  yrot.rotateY(rotationY);
-  
-  print(yrot);
-  
-  Vec3D zrot = X_AXIS.copy();
-  zrot.rotateZ(0);
-  
-  Quaternion xrotQuat = new Quaternion( 1,  0, 0, 0 );  
-  xrotQuat.set( xrot.dot( Z_AXIS ), xrot.cross( Z_AXIS) );  
-     
-  Quaternion yrotQuat = new Quaternion( 1,  0, 0, 0  );  
-  yrotQuat.set( yrot.dot( X_AXIS ), yrot.cross( X_AXIS ) );  
-     
-  Quaternion zrotQuat = new Quaternion( 1,  0, 0, 0  );  
-  zrotQuat.set( zrot.dot( X_AXIS ), zrot.cross( X_AXIS) );  
-  
-  Quaternion rotQuat = xrotQuat.multiply( yrotQuat ).multiply( zrotQuat );  
-  //m       = rotQuat.getMatrix();  
-
-  
-  //Quaternion camQuaternion = Quaternion.createFromEuler(0,rotationX,rotationY);
-  //camQuaternion.scale(10000);
-
-  Matrix4x4 rotMatrix = rotQuat.toMatrix4x4();
-  
-  Vec3D newCamPos = new Vec3D(0,0,1000);
-  
-  rotMatrix.applyTo(newCamPos);
-
-  //print("X:"+rotQuat.x+",Y:"+rotQuat.y+",Z:"+rotQuat.z+"\r\f");
-  //camera(newCamPos.x,newCamPos.y,newCamPos.z,0,0,0,0,1,0);
-
-  pushMatrix();
-  //translate(width/2.0, height/2.0, pushBack);
-  pushMatrix();
-  noFill();
-  stroke(255,200);
-  strokeWeight(2);
-  smooth();
-  popMatrix();
-  lights();    
-  pushMatrix();
-  //rotateX( radians(-rotationX) );  
-  //rotateY( radians(-rotationY) );
-  fill(200);
-  noStroke();
-  textureMode(IMAGE);  
-
-  
-  texturedSphere(globeRadius, texmap);
-  //drawPoints();
-  popMatrix();  
-  popMatrix();
 
 }
 
@@ -281,7 +215,6 @@ void texturedSphere(float r, PImage t)
   r = globeRadius;//(r + 240 ) * 0.33;
   beginShape(TRIANGLE_STRIP);
   texture(t);
-  //stroke(0);
   float iu=(float)(t.width-1)/(sDetail);
   float iv=(float)(t.height-1)/(sDetail);
   float u=0,v=iv;

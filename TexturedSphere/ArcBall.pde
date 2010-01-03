@@ -76,7 +76,6 @@ class ArcBall
     // instead of transforming q into a matrix and applying it...
 
     float[] aa = q.getValue();
-    print("aa[0]="+aa[0]+",aa[1]="+aa[1]+",aa[2]="+aa[2]+",aa[3]"+aa[3]);
     rotate(aa[0], aa[1], aa[2], aa[3]);
   }
 }
