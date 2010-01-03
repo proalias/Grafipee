@@ -60,12 +60,12 @@ void setup() {
 void draw() {
   background(0);
   
+  lights();    
   //translate(00.0f, 500.0f, 0.0f);  // positioning...
   pushMatrix();
   arcBall.run();
   //renderGlobe();
   
-  lights();    
   fill(200);
   noStroke();
   textureMode(IMAGE);  
