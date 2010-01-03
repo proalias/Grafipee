@@ -1,0 +1,7 @@
+Grafipee todo
+
+- TIDY CODE!
+- Figure out depth sorting
+- Add method to inject a vector into the arcball
+- Connect with sensor code
+- Limit point count to some max number to improve stability

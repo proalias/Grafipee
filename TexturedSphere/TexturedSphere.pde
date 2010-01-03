@@ -91,10 +91,7 @@ void draw() {
   //addPoint();
 }
 
-//draw a circle around each axis to determine whether the problem is related to
-void drawGimbals(){
-  
-}
+
 void mousePressed()
 {
   arcBall.mousePressed();
@@ -165,7 +162,7 @@ PVector getCoordinateOfPointByAngle(float radius, float inclination, float azimu
 }
 
 void renderGlobe() {
-  /*
+  
   //PVector cameraPos = getCoordinateOfPointByAngle(1000,rotationX,rotationY);
   Vec3D rotVect = new Vec3D(rotationX,rotationY,0);
 
@@ -204,7 +201,7 @@ void renderGlobe() {
   Vec3D newCamPos = new Vec3D(0,0,1000);
   
   rotMatrix.applyTo(newCamPos);
-  */
+
   //print("X:"+rotQuat.x+",Y:"+rotQuat.y+",Z:"+rotQuat.z+"\r\f");
   //camera(newCamPos.x,newCamPos.y,newCamPos.z,0,0,0,0,1,0);
 
