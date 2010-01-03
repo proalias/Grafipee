@@ -8,6 +8,7 @@
  * Use an "arc ball" to deal with this appropriately.
  */ 
 
+import javax.media.opengl.GL;
 import processing.opengl.*;
 import toxi.geom.*;
 
@@ -19,7 +20,7 @@ float rotationX = 0;
 float rotationY = 0;
 float velocityX = 0;
 float velocityY = 0;
-float globeRadius = 450;
+float globeRadius = 1450;
 float pushBack = 0;
 
 float[] cx, cz, sphereX, sphereY, sphereZ;
@@ -28,8 +29,8 @@ float cosLUT[];
 float SINCOS_PRECISION = 0.5;
 int SINCOS_LENGTH = int(360.0 / SINCOS_PRECISION);
 
-int pointW = 12;
-int pointH = 18;
+int pointW = 120;
+int pointH = 180;
 ArrayList points;
 PFont font;
 
@@ -38,16 +39,23 @@ ArcBall arcBall;
 void setup() {
   size(1024, 768, OPENGL);
   smooth();
+  
+  GL gl = ((PGraphicsOpenGL)g).gl; 
+
+  
+
+
+  
   texmap = loadImage("world32k.jpg");   
   texPoint = loadImage("mapPoint.png");
   points = new ArrayList();
-  points.add( new PVector(50,50,0)); 
+  points.add( new Vec3D(50,50,0)); 
   initializeSphere(sDetail);
   font = loadFont("Verdana-48.vlw");
   textFont(font);
   arcBall = new ArcBall(width / 2.0f, height / 2.0f, globeRadius);
 
-  camera(0.0, 0.0, 1120.0, 0.0, 0.0, 0.0, 
+  camera(0.0, 0.0, 5120.0, 0.0, 0.0, 0.0, 
        0.0, 1.0, 0.0);
 
 }
@@ -59,20 +67,7 @@ void draw() {
   arcBall.run();
   renderGlobe();
   //drawPoints();
-  
-  PMatrix p = new PMatrix3D();
-  float[] a = arcBall.q_drag.getValue();
-  
-
-  text(a[0],-510,-450);
-  text(a[1],-510,-400);
-  text(a[2],-510,-350);
-  text(a[3],-510,-300);
-  
-  rotate(a[0],a[1],a[2],a[3]);
-  p.invert();
-  //p.translate(-500,-500,0);
-  //PVector newPoint = new PVector(arcBall.v_drag.x * -250,arcBall.v_drag.y*-250,arcBall.v_drag.z*250);
+    
   Quat quat = arcBall.q_now;
   
   
@@ -80,7 +75,7 @@ void draw() {
  // PVector newPoint = new PVector(quat[1] * -250,quat[2] *-250,quat[3] *-250);
 
 
-  Vec3D npVect = new Vec3D(0,0,250);
+  Vec3D npVect = new Vec3D(0,0,globeRadius+100);
   
   Quaternion qRot = new Quaternion(quat.w,quat.x,quat.y,quat.z);
   Matrix4x4 pointRot = qRot.toMatrix4x4();
@@ -88,15 +83,11 @@ void draw() {
   
   print(pointRot);
   
-  PVector newPoint = new PVector();
-  newPoint.x = newRot.x;
-  newPoint.y = newRot.y;
-  newPoint.z = newRot.z;
-  //p.mult(newPoint,newPoint);
+ //p.mult(newPoint,newPoint);
   
-  points.add( newPoint); 
+  points.add( newRot); 
   
-  
+  drawPoints(pointRot);
   //addPoint();
 }
 
@@ -115,33 +106,52 @@ void mouseDragged()
 }
 
 
-void drawPoints(){
+void drawPoints(Matrix4x4 rotMatrix){
+  
+  Vec3D p0,p1,p2,p3;
+    
+    p0 = rotMatrix.applyTo(new Vec3D(-pointW, -pointH, 0));
+    p1 = rotMatrix.applyTo(new Vec3D(+pointW, -pointH, 0));
+    p2 = rotMatrix.applyTo(new Vec3D(+pointW, +pointH, 0));
+    p3 = rotMatrix.applyTo(new Vec3D(-pointW, +pointH, 0));
+    
+  //zsort the points here
+  
+   HashSet h = new HashSet(points);
+   points.clear();
+   points.addAll(h);
+
+  
+  Collections.sort(points, new ZSortComparator());
+  
+  
   for (int i=points.size()-1;i>=0;i--){ 
     textureMode(NORMALIZED);
 
     beginShape();
     texture(texPoint);
-    PVector testPoint = (PVector) points.get(i);
+    Vec3D testPoint = (Vec3D) points.get(i);
     //rotateX( radians(rotationX) );  
     //rotateY( radians(270 + rotationY) );
+    //print (testPoint);
+    
+    
+    /*
     vertex(testPoint.x-pointW, testPoint.y-pointH, testPoint.z,0,0);
     vertex(testPoint.x+pointW, testPoint.y-pointH, testPoint.z,1,0);
     vertex(testPoint.x+pointW, testPoint.y+pointH, testPoint.z,1,1);
     vertex(testPoint.x-pointW, testPoint.y+pointH, testPoint.z,0,1);
+    */
+    vertex(testPoint.x + p0.x,testPoint.y + p0.y,testPoint.z + p0.z,0,0);
+    vertex(testPoint.x + p1.x,testPoint.y + p1.y,testPoint.z + p1.z,1,0);
+    vertex(testPoint.x + p2.x,testPoint.y + p2.y,testPoint.z + p2.z,1,1);
+    vertex(testPoint.x + p3.x,testPoint.y + p3.y,testPoint.z + p3.z,0,1);
+    
+    
     endShape();
   }
 }
 
-void addPoint(){
-  PVector newPoint = new PVector(0,0,0);
-  if (rotationY < 0 && rotationY > -180 || rotationY >180 && rotationY < 360){
-    newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(rotationX),radians(rotationY));
-  }else if (rotationY > 0 && rotationY < 180 || rotationY < -180 && rotationY > -360){
-    newPoint = getCoordinateOfPointByAngle(globeRadius/2 + 20,radians(-rotationX),radians(rotationY));
-  }
-  
-  points.add( newPoint); 
-}
 
 //convert spherical coordinates into cartesian coordinates
 PVector getCoordinateOfPointByAngle(float radius, float inclination, float azimuth){
@@ -216,23 +226,10 @@ void renderGlobe() {
 
   
   texturedSphere(globeRadius, texmap);
-  drawPoints();
+  //drawPoints();
   popMatrix();  
   popMatrix();
-  rotationX += velocityX;
-  rotationY += velocityY;
-  
-  //print("rotationX="+rotationX);
-  //print("rotationY="+rotationY);  
-  velocityX *= 0.95;
-  velocityY *= 0.95;
-  
-  // Implements mouse control (interaction will be inverse when sphere is  upside down)
-  if(mousePressed){
 
-   // velocityX -= (mouseY-pmouseY) * 0.01;
-   // velocityY -= (mouseX-pmouseX) * 0.01;
-  }
 }
 
 void initializeSphere(int res)
@@ -284,7 +281,7 @@ void initializeSphere(int res)
 void texturedSphere(float r, PImage t) 
 {
   int v1,v11,v2;
-  r = (r + 240 ) * 0.33;
+  r = globeRadius;//(r + 240 ) * 0.33;
   beginShape(TRIANGLE_STRIP);
   texture(t);
   //stroke(0);
