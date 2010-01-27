@@ -2,8 +2,6 @@ import processing.opengl.*;
 import processing.serial.*;
 
 Serial myPort;
-String buff = "";
-int NEWLINE = 10;
 
 int numPiezos = 25;
 int[] boxShift = new int[numPiezos]; 
@@ -23,7 +21,7 @@ void setup()
   // is always my  Arduino module, so I open Serial.list()[0].
   // Change the 0 to the appropriate number of the serial port
   // that your microcontroller is attached to.
-  myPort = new Serial(this, "COM3", 9600);
+  myPort = new Serial(this, "COM4", 9600);
 
   // read bytes into a buffer until you get a linefeed (ASCII 10):
   myPort.bufferUntil('\n');
@@ -78,6 +76,7 @@ void serialEvent(Serial myPort) {
 
     // split the string at the commas
     // and convert the sections into integers:
+    println(myString);
     int sensors[] = int(split(myString, ','));
     // print out the values you got:
     for (int sensorNum = 0; sensorNum < sensors.length; sensorNum++) {

@@ -1,4 +1,14 @@
+/**
+ * Textured Sphere 
+ * by Mike 'Flux' Chang (cleaned up by Aaron Koblin). 
+ * Based on code by Toxi. 
+ * 
+ * A 3D textured sphere with simple rotation control.
+ * Note: Controls will be inverted when sphere is upside down. 
+ * Use an "arc ball" to deal with this appropriately.
+ */ 
 
+import javax.media.opengl.GL;
 import processing.opengl.*;
 import toxi.geom.*;
 
@@ -6,7 +16,10 @@ PImage bg;
 PImage texmap;
 PImage texPoint;
 int sDetail = 40;  // Sphere detail setting
-
+float rotationX = 0;
+float rotationY = 0;
+float velocityX = 0;
+float velocityY = 0;
 float globeRadius = 1450;
 float pushBack = 0;
 
@@ -18,72 +31,56 @@ int SINCOS_LENGTH = int(360.0 / SINCOS_PRECISION);
 
 int pointW = 60;
 int pointH = 90;
-int inc = 0;
 ArrayList points;
 PFont font;
 float cameraZ = 5000;
-SensorGrid sensorGrid;
-
-Vec3 newSensorVect;
-Vec3 oldSensorVect;
-
-
-
 
 ArcBall arcBall;
 
 void setup() {
-  size(1152, 864, OPENGL);
+  size(1024, 768, OPENGL);
   smooth();
-  //frameRate(10);
-  sensorGrid = new SensorGrid();
-  sensorGrid.initSensorGrid(new Client(this,"127.0.0.1",1985));
-  newSensorVect = new Vec3();
-  oldSensorVect = new Vec3();
+  initSensorGrid();
+  GL gl = ((PGraphicsOpenGL)g).gl; //reference to the JOGL renderer in case we need access to anything low level 
   texmap = loadImage("world32k.jpg");   
   texPoint = loadImage("mapPoint.png");
   points = new ArrayList();
   points.add( new Vec3D(50,50,0)); 
   initializeSphere(sDetail);
-
+  font = loadFont("Verdana-48.vlw");
+  textFont(font);
   arcBall = new ArcBall(width / 2.0f, height / 2.0f, globeRadius);
-  
-  //setup camera
+
   camera(0.0, 0.0, cameraZ, 0.0, 0.0, 0.0, 
        0.0, 1.0, 0.0);
 
-  font = loadFont("Verdana-48.vlw");
-  textFont(font);
 }
 
 
-
 void draw() {
-  println("draw---------------------------------------");
   background(0);
 
   lights();    
   //translate(00.0f, 500.0f, 0.0f);  // positioning...
   pushMatrix();
   
-  sensorGrid.updateSensors();
-  newSensorVect = sensorGrid.getCurrentVelocity();
-  
-  if(inc %2==0){
-    arcBall.mousePressed(newSensorVect.x,newSensorVect.y);
-    inc = 0;
-  }
-  arcBall.mouseDragged(newSensorVect.x,newSensorVect.y);
   arcBall.run();
   
-  inc++;
   fill(200);
   noStroke();
   textureMode(IMAGE);  
+
+  
   texturedSphere(globeRadius, texmap);
+ 
+  
   PMatrix worldMatrix = getMatrix().get();
   popMatrix();
   Quat quat = arcBall.q_now;
+  
+  
+ // PVector newPoint = new PVector(quat[1] * -250,quat[2] *-250,quat[3] *-250);
+
 
   Vec3D npVect = new Vec3D(0,0,globeRadius+100);
   
@@ -91,14 +88,16 @@ void draw() {
   Matrix4x4 pointRot = qRot.toMatrix4x4();
   Vec3D newRot = pointRot.applyTo(npVect);
   
+  
   points.add( newRot); 
   
   drawPoints(pointRot,worldMatrix);
 
-  pushMatrix();
+
+ pushMatrix();
   translate(0,0,4600);
-  oldSensorVect = new Vec3(newSensorVect.x,newSensorVect.y,newSensorVect.z);
-  sensorGrid.updateSensors();
+  updateSensors();
+  arcBall.sensorQ();
   popMatrix();
     
 }
@@ -106,12 +105,12 @@ void draw() {
 
 void mousePressed()
 {
-  arcBall.mousePressed(mouseX,mouseY);
+  arcBall.mousePressed();
 }
 
 void mouseDragged()
 {
-  arcBall.mouseDragged(mouseX,mouseY);
+  arcBall.mouseDragged();
 }
 
 
@@ -244,6 +243,8 @@ void texturedSphere(float r, PImage t)
     beginShape(TRIANGLE_STRIP);
     texture(t);
     for (int j = 0; j < sDetail; j++) {
+     //vertex(sphereX[v1]*r, sphereY[v1]*r, sphereZ[v1++]*r);
+     // vertex(sphereX[v2]*r, sphereY[v2]*r, sphereZ[v2++]*r);
       vertex(sphereX[v1]*r, sphereY[v1]*r, sphereZ[v1++]*r, u, v);
       vertex(sphereX[v2]*r, sphereY[v2]*r, sphereZ[v2++]*r, u, v+iv);
       u+=iu;
@@ -265,9 +266,10 @@ void texturedSphere(float r, PImage t)
   for (int i = 0; i < sDetail; i++) {
     v2 = voff + i;
     vertex(sphereX[v2]*r, sphereY[v2]*r, sphereZ[v2]*r, u, v);
-    vertex(0, r, 0,u,v+iv);    
+    vertex(0, r, 0,u,v+iv);
     u+=iu;
   }
   vertex(sphereX[voff]*r, sphereY[voff]*r, sphereZ[voff]*r, u, v);
-  endShape(); 
+  endShape();
+  
 }
